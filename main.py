@@ -46,59 +46,68 @@ def parseOptions() :
 
 def main() :
 
-    options = parseOptions()
+    try :
 
-    checkInternetIsOn()
+        # Init stuff
 
-    netlibre = NetlibRe()
+        options = parseOptions()
+        checkInternetIsOn()
+        netlibre = NetlibRe()
 
-    if (options.firstUse) :
-        print "---------------------------------------------------------------"
-        print " This script will help you create a netlib.re account."
-        print " Please remember your credentials ! They will be needed if you"
-        print " need to re-administrate your domain name later."
-        print "---------------------------------------------------------------"
-        (login, password) = chooseCredentials();
-        netlibre.register(login, password)
-    else :
-        (login, password) = askForCredentials();
+        # Ask for credentials and login
 
-    netlibre.login(login, password)
+        if (options.firstUse) :
+            print "---------------------------------------------------------------"
+            print " This script will help you create a netlib.re account."
+            print " Please remember your credentials ! They will be needed if you"
+            print " need to re-administrate your domains later."
+            print "---------------------------------------------------------------"
+            (login, password) = chooseCredentials();
+            netlibre.register(login, password)
+        else :
+            (login, password) = askForCredentials();
 
-    domain = chooseDomain()
+        netlibre.login(login, password)
 
-    if (domainIsAlreadyUsed(domain)) :
-        logger.error("This domain seems already used.")
-        sys.exit(-1)
+        # Ask and validate domain
+        domain = chooseDomain()
 
-    ip = getGlobalIp()
+        if (domainIsAlreadyUsed(domain)) :
+            raise Exception("This domain seems already used.")
 
-    # Adding domain
-    print "Adding domain " + domain + ".netlib.re ..."
-    netlibre.addDomain(domain)
+        # Get global ip
+        ip = getGlobalIp()
 
-    # Basic A record
-    print "Adding basic A record"
-    netlibre.addRecord  (domain, "A",     "@",      "3600", ip)
+        # Adding domain
+        print "Adding domain " + domain + ".netlib.re ..."
+        netlibre.addDomain(domain)
 
-    # Mail stuff
-    print "Adding mail stuff"
-    netlibre.addRecord  (domain, "A",     "mail",   "3600", ip)
-    netlibre.addMXRecord(domain,          "@",      "3600", "10", "mail")
-    netlibre.addRecord  (domain, "TXT",   "@",      "3600", "\"v=spf1 a mx -all\"")
+        # Basic A record
+        print "Adding basic A record"
+        netlibre.addRecord  (domain, "A",     "@",      "3600", ip)
 
-    # XMPP
-    print "Adding XMPP stuff"
-    netlibre.addRecord  (domain, "CNAME", "muc",    "3600", "@")
-    netlibre.addRecord  (domain, "CNAME", "pubsub", "3600", "@")
-    netlibre.addRecord  (domain, "CNAME", "vjud", "3600", "@")
+        # Mail stuff
+        print "Adding mail stuff"
+        netlibre.addRecord  (domain, "A",     "mail",   "3600", ip)
+        netlibre.addMXRecord(domain,          "@",      "3600", "10", "mail")
+        netlibre.addRecord  (domain, "TXT",   "@",      "3600", "\"v=spf1 a mx -all\"")
+
+        # XMPP
+        print "Adding XMPP stuff"
+        netlibre.addRecord  (domain, "CNAME", "muc",    "3600", "@")
+        netlibre.addRecord  (domain, "CNAME", "pubsub", "3600", "@")
+        netlibre.addRecord  (domain, "CNAME", "vjud", "3600", "@")
+
+    except Exception as e :
+
+        print str(e)
 
 ###############################################################################
 
 def domainIsAlreadyUsed(name) :
 
     # FIXME
-    # Not sure if it adress all cases ...
+    # Not sure if it addresses all cases ...
     # Could a domain be registered but with no A record, maybe that would not
     # be caught properly ... ?
 
@@ -126,8 +135,7 @@ def checkInternetIsOn():
         pass
 
     logger.info("No working internet connection found.")
-    sys.exit(-1)
-
+    raise Exception("No working internet connection found.")
 
 ###############################################################################
 
@@ -138,22 +146,9 @@ def chooseDomain() :
     # FIXME : should allow more characters than just alphanumeric ?
 
     if (not domain.isalnum()) :
-        logger.error("Please use alphanumeric names for the domain.")
-        sys.exit(-1)
+        raise Exception("Please use alphanumeric names for the domain.")
 
     return domain
-
-###############################################################################
-
-def chooseSubdomains() :
-
-    input_ = raw_input("Choose subdomains, separated by commas"+
-                       "(e.g. \"www,blog\"): ")
-
-    subdomains = input_.replace(' ', ',').split(',')
-
-    while '' in subdomains :
-        subdomains.remove('')
 
 ###############################################################################
 
@@ -164,8 +159,7 @@ def chooseCredentials() :
     # FIXME : should allow more characters than just alphanumeric ?
 
     if (not login.isalnum()) :
-        logger.error("Please use alphanumeric usernames.")
-        sys.exit(-1)
+        raise Exception("Please use alphanumeric usernames.")
 
     # FIXME : maybe a warning here if password security of netlib.re isn't so
     # strong, people shouldnt use a critical password ?
@@ -174,7 +168,7 @@ def chooseCredentials() :
     pwConfirm = getpass.getpass(prompt="Confirm  password: ")
 
     if (pw != pwConfirm) :
-        pass # FIXME / TODO : raise exception
+        raise Exception("Passwords do not match !")
     else :
         return (login, pw)
 
@@ -216,15 +210,13 @@ class NetlibRe :
                      'password'  : password,
                      'password2' : password }
 
-        r = requests.post("https://netlib.re/user/add",
+        r = requests.post("https://netlib.re/user/add/",
                           data=POSTdata)
 
         if "Salut "+login+" !" not in r.text :
-            logger.error("L'enregistrement du pseudo '"+login+"' a échoué.")
-            sys.exit(-1)
+            raise Exception("L'enregistrement du pseudo '"+login+"' a échoué.")
         else :
             logger.info("Vous avez enregistré le pseudo '"+login+"'.")
-            return True
 
     #######################################################################
 
@@ -239,12 +231,9 @@ class NetlibRe :
                               data=POSTdata)
 
         if "Salut "+login+" !" not in r.text :
-            logger.error("L'identification avec le pseudo '"+login
-                         +"' a échoué.")
-            return False
+            raise Exception("L'identification avec le pseudo '"+login+"' a échoué.")
         else :
             logger.info("Connecte en tant que '"+login+"'.")
-            return True
 
     #######################################################################
 
@@ -259,12 +248,9 @@ class NetlibRe :
                               data=POSTdata)
 
         if "details/"+name+".netlib.re" not in r.text :
-            logger.error("L'ajout du domaine a echoue.")
-            sys.exit(-1) # FIXME I should really be throwing exceptions to handle this...
-            return False
+            raise Exception("L'ajout du domaine a echoue.")
         else :
             logger.info("Le domaine a ete ajoute.")
-            return True
 
     #######################################################################
 
@@ -286,11 +272,9 @@ class NetlibRe :
         # Better exception check here ? :/
 
         if "errmsg" in r.text :
-            logger.error("L'ajout de l'enregistrement a echoue.")
-            return False
+            raise Exception("L'ajout de l'enregistrement a echoue.")
         else :
             logger.info("L'enregistrement a ete ajoute. (... Well, maybe ;).)")
-            return True
 
     #######################################################################
 
@@ -313,11 +297,9 @@ class NetlibRe :
         # Better exception check here ? :/
 
         if "errmsg" in r.text :
-            logger.error("L'ajout de l'enregistrement a echoue.")
-            return False
+            raise Exception("L'ajout de l'enregistrement a echoue.")
         else :
             logger.info("L'enregistrement a ete ajoute. (... Well, maybe ;).)")
-            return True
 
 ###############################################################################
 

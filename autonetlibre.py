@@ -15,35 +15,6 @@ logger = logging.getLogger(__name__)
 
 ###############################################################################
 
-def parseOptions() :
-
-    parser = OptionParser()
-
-    parser.add_option("-f", "--first-use",
-                      dest="firstUse",
-                      default=False,
-                      action="store_true",
-                      help="Use this option if you do not already have a netlib.re account. This script will help you create one.")
-
-    parser.add_option("-e", "--existing-account",
-                      dest="existingAccount",
-                      default=False,
-                      action="store_true",
-                      help="Use this option if you ALREADY have a netlib.re you want to use. Your credentials will be asked.")
-
-    (options, args) = parser.parse_args()
-
-    if (options.firstUse == options.existingAccount) :
-        if (options.firstUse == False) :
-            print "To use this script, you should use the option --first-use *or* --existing-account.\nSee --help."
-        else :
-            print "You can not use both --firstUse and --existingAccount at the same time."
-        sys.exit(-1)
-
-    return options
-
-###############################################################################
-
 def main() :
 
     try :
@@ -58,9 +29,9 @@ def main() :
 
         if (options.firstUse) :
             print "---------------------------------------------------------------"
-            print " This script will help you create a netlib.re account."
-            print " Please remember your credentials ! They will be needed if you"
-            print " need to re-administrate your domains later."
+            print " This script will help you create a netlib.re account.         "
+            print " Please remember your credentials ! They will be needed if you "
+            print " need to re-administrate your domains later.                   "
             print "---------------------------------------------------------------"
             (login, password) = chooseCredentials();
             netlibre.register(login, password)
@@ -103,6 +74,37 @@ def main() :
         print str(e)
 
 ###############################################################################
+
+def parseOptions() :
+
+    parser = OptionParser()
+
+    parser.add_option("-f", "--first-use",
+                      dest="firstUse",
+                      default=False,
+                      action="store_true",
+                      help="Use this option if you do not already have a netlib.re account. This script will help you create one.")
+
+    parser.add_option("-e", "--existing-account",
+                      dest="existingAccount",
+                      default=False,
+                      action="store_true",
+                      help="Use this option if you ALREADY have a netlib.re you want to use. Your credentials will be asked.")
+
+    (options, args) = parser.parse_args()
+
+    if (options.firstUse == options.existingAccount) :
+        if (options.firstUse == False) :
+            print "To use this script, you should use the option --first-use *or* --existing-account.\nSee --help."
+        else :
+            print "You can not use both --firstUse and --existingAccount at the same time."
+        sys.exit(-1)
+
+    return options
+
+###############################################################################
+
+
 
 def domainIsAlreadyUsed(name) :
 

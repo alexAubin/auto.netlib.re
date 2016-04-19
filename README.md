@@ -24,3 +24,11 @@ If you already have a netlib.re account, use option `-e`
 ```
 ./autonetlibre.py -e
 ```
+
+Todo
+----
+
+- Add domain in yunohost
+- Add DKIM and other mail stuff
+
+
